@@ -12,10 +12,14 @@ export function fetchPendingMessages(token) {
   return apiRequest("/messages", { token });
 }
 
-export async function burnMessage(messageId, token) {
-  const API_URL = "http://192.168.0.35:8000";
-  await fetch(`${API_URL}/messages/${messageId}`, {
-    method: "DELETE",
-    headers: { Authorization: `Bearer ${token}` },
+export async function freezeMessage(messageId, frozenPayload, token) {
+  return apiRequest(`/messages/${messageId}/freeze`, {
+    method: "PUT",
+    token,
+    body: { frozen_payload: frozenPayload },
   });
+}
+
+export async function burnMessage(messageId, token) {
+  return apiRequest(`/messages/${messageId}`, { method: "DELETE", token });
 }

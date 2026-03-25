@@ -1,8 +1,6 @@
 import "react-native-get-random-values";
-import "react-native-gesture-handler";
 import { useEffect } from "react";
 import { TouchableOpacity, Text } from "react-native";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useAuthStore } from "../src/stores/authStore";
@@ -16,7 +14,7 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <>
       <StatusBar style="light" />
       <Stack
         screenOptions={{
@@ -43,6 +41,6 @@ export default function RootLayout() {
         <Stack.Screen name="chat/[id]" options={{ title: "Chat", headerBackTitle: "Back" }} />
         <Stack.Screen name="settings" options={{ title: "Settings", headerBackTitle: "Back" }} />
       </Stack>
-    </GestureHandlerRootView>
+    </>
   );
 }
