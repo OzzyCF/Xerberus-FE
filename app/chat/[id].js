@@ -12,8 +12,9 @@ import {
 import { useLocalSearchParams } from "expo-router";
 import { useAuthStore } from "../../src/stores/authStore";
 import { createWebSocket } from "../../src/api/client";
-import { fetchPendingMessages } from "../../src/api/messages";
+import { fetchPendingMessages, burnMessage } from "../../src/api/messages";
 import { bytesToHex } from "../../src/utils/crypto";
+import PeepholeMessage from "../../src/components/PeepholeMessage";
 
 export default function ChatScreen() {
   const { id: conversationId } = useLocalSearchParams();
@@ -21,6 +22,7 @@ export default function ChatScreen() {
   const publicKeyHash = useAuthStore((s) => s.publicKeyHash);
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState("");
+  const [isRevealing, setIsRevealing] = useState(false);
   const wsRef = useRef(null);
   const flatListRef = useRef(null);
 
@@ -40,7 +42,7 @@ export default function ChatScreen() {
       const { messages: pending } = await fetchPendingMessages(accessToken);
       const filtered = pending.filter((m) => m.conversation_id === conversationId);
       if (filtered.length > 0) {
-        setMessages((prev) => [...prev, ...filtered]);
+        setMessages(filtered);
       }
     } catch (error) {
       console.log("Failed to load pending messages:", error.message);
@@ -106,12 +108,21 @@ export default function ChatScreen() {
     }
   };
 
+  const handleBurned = (messageId) => {
+    setMessages((prev) => prev.filter((m) => m.id !== messageId));
+    burnMessage(messageId, accessToken).catch(() => {});
+  };
+
   const renderMessage = ({ item }) => {
     const isMine = item.sender_hash === publicKeyHash;
     return (
-      <View style={[styles.messageBubble, isMine ? styles.myMessage : styles.theirMessage]}>
-        <Text style={styles.messageText}>{decodePayload(item.encrypted_payload)}</Text>
-      </View>
+      <PeepholeMessage
+        text={decodePayload(item.encrypted_payload)}
+        isMine={isMine}
+        onRevealStart={() => setIsRevealing(true)}
+        onRevealEnd={() => setIsRevealing(false)}
+        onBurned={() => handleBurned(item.id)}
+      />
     );
   };
 
@@ -127,7 +138,7 @@ export default function ChatScreen() {
         keyExtractor={(item) => item.id}
         renderItem={renderMessage}
         contentContainerStyle={styles.messageList}
-        onContentSizeChange={() => flatListRef.current?.scrollToEnd()}
+        scrollEnabled={!isRevealing}
       />
 
       <View style={styles.inputRow}>

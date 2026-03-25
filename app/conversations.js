@@ -25,8 +25,7 @@ export default function ConversationsScreen() {
   );
 
   const loadConversations = async () => {
-    // For now, we don't have a dedicated conversations endpoint
-    // This will be enhanced later — for now it shows connected contacts
+    // Will be enhanced with a dedicated endpoint later
   };
 
   const handleCreateInvite = async () => {
@@ -54,6 +53,22 @@ export default function ConversationsScreen() {
     });
   };
 
+  const handleMockContact = async () => {
+    try {
+      const data = await apiRequest("/dev/mock-contact", {
+        method: "POST",
+        token: accessToken,
+      });
+      setConversations((prev) => [
+        ...prev,
+        { id: data.conversation_id, mockHash: data.mock_hash },
+      ]);
+      router.push(`/chat/${data.conversation_id}`);
+    } catch (error) {
+      alert(error.message);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -73,14 +88,7 @@ export default function ConversationsScreen() {
         </TouchableOpacity>
       </View>
 
-      {conversations.length === 0 ? (
-        <View style={styles.empty}>
-          <Text style={styles.emptyText}>No conversations yet.</Text>
-          <Text style={styles.emptyHint}>
-            Create an invite and share it with someone you trust.
-          </Text>
-        </View>
-      ) : (
+      {conversations.length > 0 && (
         <FlatList
           data={conversations}
           keyExtractor={(item) => item.id}
@@ -89,11 +97,27 @@ export default function ConversationsScreen() {
               style={styles.conversationItem}
               onPress={() => router.push(`/chat/${item.id}`)}
             >
-              <Text style={styles.conversationText}>{item.id.slice(0, 12)}...</Text>
+              <Text style={styles.conversationText}>
+                {item.id.slice(0, 12)}...
+              </Text>
             </TouchableOpacity>
           )}
         />
       )}
+
+      {conversations.length === 0 && (
+        <View style={styles.empty}>
+          <Text style={styles.emptyText}>No conversations yet.</Text>
+          <Text style={styles.emptyHint}>
+            Create an invite and share it with someone you trust.
+          </Text>
+        </View>
+      )}
+
+      {/* Dev tools — remove before production */}
+      <TouchableOpacity style={styles.devButton} onPress={handleMockContact}>
+        <Text style={styles.devText}>[ DEV ] Create mock contact + chat</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -163,5 +187,18 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     fontSize: 14,
     fontFamily: "monospace",
+  },
+  devButton: {
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#ff6600",
+    borderRadius: 8,
+    alignItems: "center",
+    marginBottom: 32,
+  },
+  devText: {
+    color: "#ff6600",
+    fontSize: 13,
+    fontWeight: "600",
   },
 });

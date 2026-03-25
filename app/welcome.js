@@ -1,23 +1,37 @@
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { useState } from "react";
+import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuthStore } from "../src/stores/authStore";
-import { registerDevice } from "../src/api/auth";
-import { generateKeypair } from "../src/utils/crypto";
+import { registerDevice, requestChallenge, verifyChallenge } from "../src/api/auth";
+import { generateKeypair, signMessage } from "../src/utils/crypto";
 
 export default function WelcomeScreen() {
   const router = useRouter();
   const saveKeypair = useAuthStore((s) => s.saveKeypair);
+  const saveAccessToken = useAuthStore((s) => s.saveAccessToken);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleGetStarted = async () => {
+    setIsLoading(true);
     try {
+      // Generate keypair
       const { publicKey, privateKey, publicKeyHash } = await generateKeypair();
 
+      // Register with backend
       await registerDevice(publicKey);
       await saveKeypair(publicKey, privateKey, publicKeyHash);
 
-      router.replace("/login");
+      // Immediately login (challenge-response)
+      const { nonce } = await requestChallenge(publicKeyHash);
+      const signature = signMessage(nonce, privateKey);
+      const { access_token } = await verifyChallenge(publicKeyHash, nonce, signature);
+      await saveAccessToken(access_token);
+
+      router.replace("/conversations");
     } catch (error) {
       alert(error.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -28,8 +42,12 @@ export default function WelcomeScreen() {
         <Text style={styles.subtitle}>Private conversations{"\n"}that cease to exist.</Text>
       </View>
 
-      <TouchableOpacity style={styles.button} onPress={handleGetStarted}>
-        <Text style={styles.buttonText}>Get Started</Text>
+      <TouchableOpacity style={styles.button} onPress={handleGetStarted} disabled={isLoading}>
+        {isLoading ? (
+          <ActivityIndicator color="#0a0a0a" />
+        ) : (
+          <Text style={styles.buttonText}>Get Started</Text>
+        )}
       </TouchableOpacity>
 
       <TouchableOpacity

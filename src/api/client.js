@@ -1,4 +1,5 @@
-const API_URL = "http://localhost:8000";
+// Use your Mac's local IP so the phone can reach the backend
+const API_URL = "http://192.168.0.35:8000";
 
 export async function apiRequest(endpoint, options = {}) {
   const { token, method = "GET", body } = options;
